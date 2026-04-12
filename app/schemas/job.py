@@ -26,11 +26,11 @@ class JobCreate(BaseModel):
             raise ValueError("payload cannot be empty")
         return val
 
-    @model_validator(mode="after")
-    def validate_schedule(self):
-        if self.scheduled_at and self.scheduled_at < datetime.now():
-            raise ValueError("scheduled_at cannot be in the past")
-        return self
+    # @model_validator(mode="after")
+    # def validate_schedule(self):
+    #     if self.scheduled_at and self.scheduled_at < datetime.now():
+    #         raise ValueError("scheduled_at cannot be in the past")
+    #     return self
 
 
 class JobResponse(BaseModel):

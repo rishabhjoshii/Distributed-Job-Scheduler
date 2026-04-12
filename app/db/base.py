@@ -1,1 +1,0 @@
-"""Base SQLAlchemy model declarations."""
