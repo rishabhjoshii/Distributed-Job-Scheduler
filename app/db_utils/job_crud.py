@@ -1,7 +1,7 @@
 """CRUD helpers for jobs."""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.models.job import Job
 
 
@@ -23,6 +23,13 @@ def get_job(db: Session, job_id):
     if not job:
         raise ValueError(f"Job with id {job_id} not found")
     return job
+
+
+def list_jobs(db: Session, status: str):
+    query = db.query(Job)
+    if status != "all":
+        query = query.filter(Job.status == status)
+    return query.order_by(Job.created_at.desc()).all()
 
 
 def update_job(db: Session, job_id, job_data):
@@ -82,4 +89,25 @@ def update_job_status(db: Session, job_id, status, error=None):
 
     db.commit()
     db.refresh(job)
+    return job
+
+def handle_job_failure(db, job_id, error):
+    job = get_job(db, job_id)
+
+    if not job:
+        return None
+
+    job.last_error = str(error)
+
+    if job.retry_count < job.max_retries:
+        delay_seconds = 2 ** job.retry_count
+
+        job.status = "pending"
+        job.scheduled_at = datetime.utcnow() + timedelta(seconds=delay_seconds)
+        job.retry_count += 1
+
+    else:
+        job.status = "failed"
+
+    db.commit()
     return job
