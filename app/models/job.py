@@ -24,5 +24,7 @@ class Job(Base):
 
     last_error = Column(Text, nullable=True)
 
+    started_at = Column(TIMESTAMP, nullable=True)
+
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
