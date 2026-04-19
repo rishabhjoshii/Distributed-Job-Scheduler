@@ -1,9 +1,13 @@
 """CRUD helpers for jobs."""
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.constants import JobState
 from app.models.job import Job
+
+logger = logging.getLogger("Jobs-Crud-Util")
 
 
 def create_job(db: Session, job_data):
@@ -102,7 +106,9 @@ def handle_job_failure(db, job_id, error):
         job.scheduled_at = datetime.utcnow() + timedelta(seconds=delay_seconds)
         job.retry_count += 1
 
-        print(f"Job {job_id} re-scheduled for {str(job.scheduled_at)}")
+        logger.info(
+            "Job %s re-scheduled for %s", job_id, job.scheduled_at
+        )
 
     else:
         job.status = "failed"

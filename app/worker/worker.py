@@ -1,14 +1,21 @@
 """Worker logic."""
 import json
+import logging
 
 from sqlalchemy.orm import Session
+
 from app.core import rabbitmq
+from app.core.logging import setup_logging
 from app.db.session import get_db_session
 from app.db_utils.job_crud import fetch_job_for_update, get_job, handle_job_failure, update_job_status
 from app.handlers import log_handler
 from app.models.job import Job
 
+logger = logging.getLogger("Worker")
+
+
 def process_job(db, job_id):
+    logger.info(f"Processing job {job_id}")
     job = fetch_job_for_update(db, job_id)
 
     if not job:
@@ -57,13 +64,15 @@ def callback(ch, method, properties, body):
                     delivery_tag=method.delivery_tag,
                     requeue=False
                 )
-                print(f"Job {job.id} added to DLQ. Error: {error}")
+                logger.error("Job %s added to DLQ. Error: %s", job.id, error)
             else:
                 # retry
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 def start_worker():
+    setup_logging()
+
     connection = rabbitmq.get_connection()
     channel = connection.channel()
 
@@ -76,5 +85,5 @@ def start_worker():
         on_message_callback=callback
     )
 
-    print("Worker started...")
+    logger.info("Worker started...")
     channel.start_consuming()

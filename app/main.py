@@ -1,8 +1,13 @@
 """FastAPI application entry point."""
+import logging
 import threading
+
 from fastapi import FastAPI
+
+logger = logging.getLogger("Main")
 from app.api.v1 import jobs
 from app.core import rabbitmq
+from app.core.logging import setup_logging
 from app.db.session import Base, engine
 from app.scheduler.scheduler import run_scheduler
 
@@ -17,10 +22,12 @@ def health_check():
 app.include_router(jobs.router, prefix="/api/v1")
 
 @app.on_event("startup")
-def start_scheduler():
-    print("Initialising RabbitMQ setup")
+def start_services():
+    setup_logging()
+
+    logger.info("Initialising RabbitMQ setup")
     rabbitmq.init_rabbitmq()
-    
-    print("Starting scheduler thread...")
+
+    logger.info("Starting scheduler thread...")
     thread = threading.Thread(target=run_scheduler, daemon=True)
     thread.start()

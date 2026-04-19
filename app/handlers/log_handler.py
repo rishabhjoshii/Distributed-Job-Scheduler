@@ -1,5 +1,10 @@
 """Log job handler."""
+import logging
+
+logger = logging.getLogger("LogHandler")
+
 
 def execute(job):
-    print(f"Executing job {job.id} with payload {job.payload}")
+    logger.info("Executing job %s with payload %s", job.id, job.payload)
+    raise Exception("Forced failure")
 

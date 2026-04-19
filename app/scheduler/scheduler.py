@@ -1,16 +1,20 @@
 """Scheduler logic."""
 
+import logging
 import time
+
 from app.core import rabbitmq
+
+logger = logging.getLogger("Scheduler")
 from app.db.session import get_db_session
 from app.db_utils.job_crud import fetch_pending_jobs, recover_stuck_jobs
 
 
 def run_scheduler():
-    print("Scheduler started...")
+    logger.info("Scheduler started...")
 
     while True:
-        print("Polling Database...")
+        logger.info("Polling Database...")
 
         try:
             with get_db_session() as db:
@@ -19,12 +23,14 @@ def run_scheduler():
 
             for job in jobs:
                 try:
-                    print("Publishing job to message-queue")
+                    logger.info("Publishing job %s to message-queue", job.id)
                     rabbitmq.publish_job(job.id)
-                except Exception as e:
-                    print(f"Error publishing job {job.id} in the Message queue: {e}")
+                except Exception:
+                    logger.exception(
+                        "Error publishing job %s in the Message queue", job.id
+                    )
 
-        except Exception as e:
-            print("Scheduler loop error:", e)
+        except Exception:
+            logger.exception("Scheduler loop error")
 
         time.sleep(5)

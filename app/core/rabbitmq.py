@@ -1,5 +1,9 @@
-import pika
 import json
+import logging
+
+import pika
+
+logger = logging.getLogger("RabbitMQ-Util")
 
 connection = None
 channel = None
@@ -42,4 +46,4 @@ def publish_job(job_id):
             delivery_mode=2  # persistent
         ),
     )
-    print(f"Successfully published job {job_id} to the queue.")
+    logger.info("Successfully published job %s to the queue.", job_id)
