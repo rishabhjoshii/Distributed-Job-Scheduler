@@ -2,6 +2,7 @@
 
 import time
 from sqlalchemy.orm import Session
+from app.core import rabbitmq
 from app.db.session import get_db_session
 from app.db_utils import job_crud
 from app.db_utils.job_crud import fetch_and_mark_running, handle_job_failure, update_job_status
@@ -20,21 +21,9 @@ def run_scheduler():
 
             for job in jobs:
                 try:
-                    if job.retry_count > 0:
-                        print(f"Retrying job {job.id}")
-                    else:
-                        print(f"Executing job {job.id}")
-
-                    with get_db_session() as exec_db:
-                        try:
-                            log_handler.execute(job)
-                            update_job_status(exec_db, job.id, "success")
-
-                        except Exception as e:
-                            handle_job_failure(exec_db, job.id, e)
-
+                    rabbitmq.publish_job(job.id)
                 except Exception as e:
-                    print(f"Error processing job {job.id}: {e}")
+                    print(f"Error publishing job {job.id} in the Message queue: {e}")
 
         except Exception as e:
             print("Scheduler loop error:", e)

@@ -4,13 +4,12 @@ from typing import List, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.core.constants import JobStatusFilter
 from app.schemas.job import JobCreate, JobResponse
 from app.services import job_service
 from app.db.session import SessionLocal
 
 router = APIRouter()
-
-JobStatusFilter = Literal["all", "pending", "running", "success", "failed"]
 
 
 def get_db():

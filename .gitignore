@@ -5,3 +5,6 @@ __pycache__/
 # Environment
 .env
 /venv
+
+# vs code settings
+.vscode
