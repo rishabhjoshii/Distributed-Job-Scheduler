@@ -1,18 +1,37 @@
 import pika
 import json
 
+connection = None
+channel = None
 
 def get_connection():
     return pika.BlockingConnection(
         pika.ConnectionParameters(host="localhost")
     )
 
-def publish_job(job_id):
+def setup_queues(channel):
+    # DLQ
+    channel.queue_declare(queue="job_dlq", durable=True)
+
+    # Main queue with DLQ config
+    channel.queue_declare(
+        queue="job_queue",
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "",
+            "x-dead-letter-routing-key": "job_dlq"
+        }
+    )
+
+def init_rabbitmq():
+    global connection, channel
+
     connection = get_connection()
     channel = connection.channel()
 
-    queue = channel.queue_declare(queue="job_queue", durable=True)
+    setup_queues(channel)
 
+def publish_job(job_id):
     message = json.dumps({"job_id": str(job_id)})
 
     channel.basic_publish(
@@ -23,5 +42,4 @@ def publish_job(job_id):
             delivery_mode=2  # persistent
         ),
     )
-
-    connection.close()
+    print(f"Successfully published job {job_id} to the queue.")
