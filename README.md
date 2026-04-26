@@ -252,7 +252,30 @@ git clone <repo-url>
 open terminal in root directory
 ```
 
-### 2. Start Infrastructure
+### 2. Add Configuration
+Create a `.env` file in project root:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/jobs_db
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+
+JOB_QUEUE=job_queue
+DLQ_QUEUE=job_dlq
+
+SCHEDULER_POLL_INTERVAL=5
+STUCK_JOB_TIMEOUT=60
+MAX_FETCH_LIMIT=10
+
+WORKER_PREFETCH_COUNT=1
+
+DEFAULT_MAX_RETRIES=3
+RETRY_BACKOFF_BASE=2
+
+LOG_LEVEL=INFO
+```
+
+### 3. Start Infrastructure
 
 ```bash
 docker-compose up -d
@@ -263,13 +286,13 @@ This starts:
 - PostgreSQL container
 - RabbitMQ container
 
-### 3. Start API Server
+### 4. Start API Server
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 4. Start Worker
+### 5. Start Worker
 
 ```bash
 python -c "from app.worker.worker import start_worker; start_worker()"
