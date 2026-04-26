@@ -4,6 +4,7 @@ from sqlalchemy import Column, String, Integer, Text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 
+from app.core.config import config_settings
 from app.db.session import Base
 
 
@@ -20,11 +21,13 @@ class Job(Base):
     scheduled_at = Column(TIMESTAMP, nullable=False)
 
     retry_count = Column(Integer, default=0)
-    max_retries = Column(Integer, default=3)
+    max_retries = Column(Integer, default=config_settings.DEFAULT_MAX_RETRIES)
 
     last_error = Column(Text, nullable=True)
 
     started_at = Column(TIMESTAMP, nullable=True)
-
+    queued_at = Column(TIMESTAMP, nullable=True)
+    
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    

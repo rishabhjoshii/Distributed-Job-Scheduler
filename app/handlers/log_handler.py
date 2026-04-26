@@ -1,10 +1,12 @@
 """Log job handler."""
 import logging
 
+from app.handlers.base_handler import JobHandler
+
 logger = logging.getLogger("LogHandler")
 
 
-def execute(job):
-    logger.info("Executing job %s with payload %s", job.id, job.payload)
-    raise Exception("Forced failure")
+class LogHandler(JobHandler):
+    def execute(self, job):
+        logger.info("Log job payload: %s", job.payload)
 

@@ -9,7 +9,7 @@ from app.api.v1 import jobs, metrics
 from app.core import rabbitmq
 from app.core.logging import setup_logging
 from app.db.session import Base, engine
-from app.scheduler.scheduler import run_scheduler
+from app.scheduler.scheduler import request_shutdown, run_scheduler
 
 Base.metadata.create_all(bind=engine)
 
@@ -32,3 +32,7 @@ def start_services():
     logger.info("Starting scheduler thread...")
     thread = threading.Thread(target=run_scheduler, daemon=True)
     thread.start()
+
+@app.on_event("shutdown")
+def shutdown_event():
+    request_shutdown()

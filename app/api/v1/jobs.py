@@ -1,23 +1,15 @@
 """Job API routes."""
-from typing import List, Literal
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.constants import JobStatusFilter
+from app.core.constants import JobStatusFilter, normalize_status_filter
+from app.db.session import get_db
 from app.schemas.job import JobCreate, JobResponse
 from app.services import job_service
-from app.db.session import SessionLocal
 
 router = APIRouter()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.post("/jobs", response_model=JobResponse)
@@ -29,11 +21,16 @@ def create_job(job: JobCreate, db: Session = Depends(get_db)):
 def list_jobs(
     status: JobStatusFilter = Query(
         "all",
-        description="Filter by status: pending, running, success, failed, or all.",
+        description="Filter by status: pending, running, queued, success, failed, or all.",
     ),
     db: Session = Depends(get_db),
 ):
-    return job_service.list_jobs(db, status)
+    try:
+        normalized_status = normalize_status_filter(status)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return job_service.list_jobs(db, normalized_status)
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
