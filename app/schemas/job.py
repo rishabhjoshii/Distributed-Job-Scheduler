@@ -41,3 +41,7 @@ class JobResponse(BaseModel):
     max_retries: int
     scheduled_at: datetime
     last_error: Optional[str]
+
+class RetryJobRequest(BaseModel):
+    reset_retry_count: Optional[bool] = True
+    scheduled_at: Optional[datetime] = None

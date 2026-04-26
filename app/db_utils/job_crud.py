@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.config import config_settings
-from app.core.constants import JobState, normalize_value
+from app.core.constants import VALID_CANCELLABLE_JOB_STATES, JobState, normalize_value
 from app.core.metrics import metrics
 from app.models.job import Job
 
@@ -193,3 +193,54 @@ def recover_stuck_queued_jobs(db, timeout_seconds=60, limit=None):
     db.commit()
 
     return stuck_jobs
+
+def retry_job(
+    db,
+    job_id,
+    reset_retry_count=True,
+    scheduled_at=None
+):
+    job = get_job(db, job_id)
+
+    if not job:
+        return None
+
+    if job.status != "failed":
+        raise ValueError(
+            "Only failed jobs can be retried"
+        )
+
+    job.status = "pending"
+    job.last_error = None
+    job.started_at = None
+    job.queued_at = None
+
+    job.scheduled_at = (
+        scheduled_at or datetime.utcnow()
+    )
+
+    if reset_retry_count:
+        job.retry_count = 0
+
+    db.commit()
+    db.refresh(job)
+
+    return job
+
+def cancel_job(db, job_id):
+    job = get_job(db, job_id)
+
+    if not job:
+        return None
+
+    if job.status not in VALID_CANCELLABLE_JOB_STATES:
+        raise ValueError(
+            f"Cannot cancel job in state {job.status}"
+        )
+
+    job.status = JobState.CANCELLED
+
+    db.commit()
+    db.refresh(job)
+
+    return job

@@ -8,13 +8,13 @@ JobStatusFilter = Literal["all", "pending", "running", "queued", "success", "fai
 
 JobStates = Literal["pending", "running", "success", "failed", "queued"]
 
-
 class JobState(str, Enum):
     PENDING = "pending"
     FAILED = "failed"
     RUNNING = "running"
     SUCCESS = "success"
-    QUEUED = "queued"
+    QUEUED = "queued",
+    CANCELLED = "cancelled"
 
 class JobType(str, Enum):
     LOG = "log"
@@ -28,6 +28,11 @@ VALID_JOB_STATUS_FILTERS = {
     JobState.RUNNING.value,
     JobState.SUCCESS.value,
     JobState.FAILED.value,
+    JobState.QUEUED.value,
+}
+
+VALID_CANCELLABLE_JOB_STATES = {
+    JobState.PENDING.value,
     JobState.QUEUED.value,
 }
 

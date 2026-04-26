@@ -51,18 +51,53 @@ def ensure_channel():
         setup_queues(channel)
 
 def publish_job(job_id):
-    global channel
+    global connection, channel
 
-    ensure_channel()
     message = json.dumps({"job_id": str(job_id)})
 
-    channel.basic_publish(
-        exchange="",
-        routing_key=config_settings.JOB_QUEUE,
-        body=message,
-        properties=pika.BasicProperties(
-            delivery_mode=2  # persistent
-        ),
-    )
-    logger.info("Successfully published job %s to the queue.", job_id)
+    try:
+        ensure_channel()
 
+        channel.basic_publish(
+            exchange="",
+            routing_key=config_settings.JOB_QUEUE,
+            body=message,
+            properties=pika.BasicProperties(
+                delivery_mode=2
+            ),
+        )
+
+        logger.info(
+            "Successfully published job %s to the queue.",
+            job_id
+        )
+
+    except Exception:
+        logger.exception(
+            "Publish failed for job %s. Reconnecting...",
+            job_id
+        )
+
+        try:
+            init_rabbitmq()
+
+            channel.basic_publish(
+                exchange="",
+                routing_key=config_settings.JOB_QUEUE,
+                body=message,
+                properties=pika.BasicProperties(
+                    delivery_mode=2
+                ),
+            )
+
+            logger.info(
+                "Republish successful for job %s",
+                job_id
+            )
+
+        except Exception:
+            logger.exception(
+                "Republish also failed for job %s",
+                job_id
+            )
+            raise

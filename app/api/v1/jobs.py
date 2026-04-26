@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.constants import JobStatusFilter, normalize_status_filter
 from app.db.session import get_db
-from app.schemas.job import JobCreate, JobResponse
+from app.schemas.job import JobCreate, JobResponse, RetryJobRequest
 from app.services import job_service
 
 router = APIRouter()
@@ -39,3 +39,51 @@ def get_job(job_id: str, db: Session = Depends(get_db)):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+@router.post("/jobs/{job_id}/retry", response_model=JobResponse)
+def retry_job(
+    job_id: str,
+    request: RetryJobRequest,
+    db: Session = Depends(get_db)
+):
+    try:
+        job = job_service.retry_job(
+            db=db,
+            job_id=job_id,
+            reset_retry_count=request.reset_retry_count,
+            scheduled_at=request.scheduled_at
+        )
+
+        if not job:
+            raise HTTPException(
+                status_code=404,
+                detail="Job not found"
+            )
+
+        return job
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
+
+
+@router.post("/jobs/{job_id}/cancel", response_model=JobResponse)
+def cancel_job(job_id: str, db: Session = Depends(get_db)):
+    try:
+        job = job_service.cancel_job(db, job_id)
+
+        if not job:
+            raise HTTPException(
+                status_code=404,
+                detail="Job not found"
+            )
+
+        return job
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc)
+        ) from exc
