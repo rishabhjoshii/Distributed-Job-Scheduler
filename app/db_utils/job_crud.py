@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.config import config_settings
 from app.core.constants import VALID_CANCELLABLE_JOB_STATES, JobState, normalize_value
-from app.core.metrics import metrics
 from app.models.job import Job
 
 logger = logging.getLogger("Jobs-Crud-Util")
@@ -120,7 +119,6 @@ def handle_job_failure(db, job_id, error):
         logger.info(
             "Job %s re-scheduled for %s", job_id, job.scheduled_at
         )
-        metrics.jobs_retried += 1
 
     else:
         job.status = JobState.FAILED

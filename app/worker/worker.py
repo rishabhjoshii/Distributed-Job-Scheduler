@@ -10,7 +10,6 @@ from app.core.constants import JobState, normalize_value
 from app.core.logging import setup_logging
 from app.db.session import get_db_session
 from app.db_utils.job_crud import fetch_job_for_update, get_job, handle_job_failure, update_job_status
-from app.core.metrics import metrics
 from app.handlers.registry import get_job_handler
 
 logger = logging.getLogger("Worker")
@@ -58,12 +57,10 @@ def process_job(db, job_id):
         handler.execute(job)
 
         update_job_status(db, job.id, JobState.SUCCESS)
-        metrics.jobs_processed += 1
         return "success", None
 
     except Exception as e:
         handle_job_failure(db, job.id, e)
-        metrics.jobs_failed += 1
         return "failed", e
 
     finally:
