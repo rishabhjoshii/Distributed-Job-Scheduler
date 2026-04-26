@@ -5,7 +5,7 @@ import threading
 from fastapi import FastAPI
 
 logger = logging.getLogger("Main")
-from app.api.v1 import jobs
+from app.api.v1 import jobs, metrics
 from app.core import rabbitmq
 from app.core.logging import setup_logging
 from app.db.session import Base, engine
@@ -20,6 +20,7 @@ def health_check():
     return {"status": "ok"}
 
 app.include_router(jobs.router, prefix="/api/v1")
+app.include_router(metrics.router, prefix="/api/v1")
 
 @app.on_event("startup")
 def start_services():

@@ -4,6 +4,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
+from app.core import metrics
 from app.core.constants import JobState
 from app.models.job import Job
 
@@ -77,7 +78,7 @@ def fetch_pending_jobs(db: Session, limit=10):
     db.commit()
     return jobs
 
-def update_job_status(db: Session, job_id, status, error=None):
+def update_job_status(db: Session, job_id, status: JobState, error=None):
     job = get_job(db, job_id)
 
     if not job:
@@ -109,6 +110,7 @@ def handle_job_failure(db, job_id, error):
         logger.info(
             "Job %s re-scheduled for %s", job_id, job.scheduled_at
         )
+        metrics.jobs_retried += 1
 
     else:
         job.status = "failed"
