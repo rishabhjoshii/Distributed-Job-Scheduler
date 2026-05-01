@@ -3,6 +3,8 @@
 from enum import Enum
 from typing import Literal
 
+from app.schemas.job import CreateJobEmailPayload, CreateJobWebhookPayload
+
 
 JobStatusFilter = Literal["all", "pending", "running", "queued", "success", "failed"]
 
@@ -46,3 +48,14 @@ def normalize_status_filter(status: str) -> str:
     if normalized not in VALID_JOB_STATUS_FILTERS:
         raise ValueError(f"Invalid job status filter: {status}")
     return normalized
+
+def validate_create_job_request_payload(job_type, payload):
+    job_type = job_type.lower()
+
+    if job_type == "email":
+        return CreateJobEmailPayload(**payload)
+
+    if job_type == "webhook":
+        return CreateJobWebhookPayload(**payload)
+
+    raise ValueError(f"Unsupported job type: {job_type}")

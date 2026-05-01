@@ -31,6 +31,10 @@ class ConfigSettings(BaseSettings):
 
     LOG_LEVEL: str = "INFO"
 
+    EMAIL_PROVIDER: str = "None"
+    RESEND_API_KEY: str
+    EMAIL_FROM: str
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),
         extra="ignore"

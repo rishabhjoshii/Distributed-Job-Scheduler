@@ -1,6 +1,6 @@
 """Job request and response schemas."""
-from pydantic import BaseModel, field_validator, model_validator
-from typing import Optional, Dict, Any
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from typing import Literal, Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
 
@@ -45,3 +45,15 @@ class JobResponse(BaseModel):
 class RetryJobRequest(BaseModel):
     reset_retry_count: Optional[bool] = True
     scheduled_at: Optional[datetime] = None
+
+class CreateJobEmailPayload(BaseModel):
+    to: EmailStr
+    subject: str
+    body: str
+    content_type: Literal["text", "html"] = "text"
+
+
+class CreateJobWebhookPayload(BaseModel):
+    url: str
+    method: Literal["POST", "GET", "PATCH", "PUT", "DELETE"]
+    data: dict = Field(default_factory=dict)
