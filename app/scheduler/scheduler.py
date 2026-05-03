@@ -8,6 +8,7 @@ from app.core import rabbitmq
 from app.core.config import config_settings
 from app.db.session import get_db_session
 from app.db_utils.job_crud import fetch_pending_jobs, recover_stuck_queued_jobs, recover_stuck_running_jobs
+from app.db_utils.schedule_crud import create_job_from_schedule, fetch_due_schedules, update_schedule_after_run
 
 logger = logging.getLogger("Scheduler")
 
@@ -27,6 +28,19 @@ def run_scheduler():
             with get_db_session() as db:
                 recover_stuck_running_jobs(db, config_settings.STUCK_JOB_TIMEOUT)
                 recover_stuck_queued_jobs(db, config_settings.STUCK_JOB_TIMEOUT)
+            
+                schedules = fetch_due_schedules(db)
+                for schedule in schedules:
+                    create_job_from_schedule(db, schedule)
+                    update_schedule_after_run(db, schedule)
+                    logger.info(
+                        "successfully created job from schedule %s (run_count=%s)",
+                        schedule.id,
+                        schedule.run_count
+                    )
+
+                db.commit()
+
                 job_ids = fetch_pending_jobs(db, config_settings.MAX_FETCH_LIMIT)
 
             for job_id in job_ids:

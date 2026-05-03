@@ -1,7 +1,8 @@
 """Job model."""
 import uuid
-from sqlalchemy import Column, String, Integer, Text, TIMESTAMP
+from sqlalchemy import Column, DateTime, ForeignKey, String, Integer, Text, TIMESTAMP
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.config import config_settings
@@ -18,7 +19,7 @@ class Job(Base):
 
     status = Column(String, nullable=False, default="pending")
 
-    scheduled_at = Column(TIMESTAMP, nullable=False)
+    scheduled_at = Column(DateTime, nullable=False)
 
     retry_count = Column(Integer, default=0)
     max_retries = Column(Integer, default=config_settings.DEFAULT_MAX_RETRIES)
@@ -30,4 +31,9 @@ class Job(Base):
     
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    schedule_id = Column(UUID(as_uuid=True), ForeignKey("job_schedules.id"), nullable=True)
+
+    schedule = relationship("JobSchedule", back_populates="jobs")
+
     

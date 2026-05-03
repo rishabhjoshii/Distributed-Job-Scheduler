@@ -11,8 +11,8 @@ def get_job(db: Session, job_id):
     return job_crud.get_job(db, job_id)
 
 
-def list_jobs(db: Session, status: str):
-    return job_crud.list_jobs(db, status)
+def list_jobs(db: Session, status: str, limit: int, offset: int):
+    return job_crud.list_jobs(db, status, limit, offset)
 
 def retry_job(
     db,

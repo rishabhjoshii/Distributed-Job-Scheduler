@@ -1,6 +1,5 @@
 """Application configuration."""
 from pathlib import Path
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -28,12 +27,31 @@ class ConfigSettings(BaseSettings):
     DEFAULT_MAX_RETRIES: int = 3
     RETRY_BACKOFF_BASE: int = 2
     RECOVER_STUCK_LIMIT: int = 50
+    MAX_SCHEDULE_RUN_COUNT: int = 10000
 
     LOG_LEVEL: str = "INFO"
 
     EMAIL_PROVIDER: str = "None"
     RESEND_API_KEY: str
     EMAIL_FROM: str
+
+    AUTH_ENABLED: bool = True
+    AUTH_API_KEYS: str
+    AUTH_API_KEY_HEADER: str = "x-api-key"
+    AUTH_SKIP_PATHS: str = "/docs,/openapi.json,/favicon.ico,/health-check,/health,/metrics"
+    AUTH_PROTECTED_METHODS: str
+
+    @property
+    def parsed_api_keys(self):
+        return [k.strip() for k in self.AUTH_API_KEYS.split(",") if k.strip()]
+
+    @property
+    def parsed_skip_paths(self):
+        return [p.strip() for p in self.AUTH_SKIP_PATHS.split(",") if p.strip()]
+
+    @property
+    def parsed_protected_methods(self):
+        return [m.strip().upper() for m in self.AUTH_PROTECTED_METHODS.split(",") if m.strip()]
 
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE),

@@ -3,8 +3,6 @@
 from enum import Enum
 from typing import Literal
 
-from app.schemas.job import CreateJobEmailPayload, CreateJobWebhookPayload
-
 
 JobStatusFilter = Literal["all", "pending", "running", "queued", "success", "failed"]
 
@@ -38,6 +36,18 @@ VALID_CANCELLABLE_JOB_STATES = {
     JobState.QUEUED.value,
 }
 
+ValidScheduleTypes = Literal["interval"]
+ValidJobTypes = Literal["webhook", "email", "log"]
+
+# Runtime allow-lists (typing.Literal is not safe for `x in Literal[...]` checks).
+VALID_SCHEDULE_TYPES = frozenset({"interval"})
+VALID_JOB_TYPES = frozenset({"webhook", "email", "log"})
+
+class ScheduleStatus(str, Enum):
+    ALL = "all"
+    ACTIVE = "active"
+    INACTIVE = "inactive"
+
 
 def normalize_value(value: str) -> str:
     return (value or "").strip().lower()
@@ -50,6 +60,9 @@ def normalize_status_filter(status: str) -> str:
     return normalized
 
 def validate_create_job_request_payload(job_type, payload):
+    # Local import avoids circular dependency with app.schemas.job.
+    from app.schemas.job import CreateJobEmailPayload, CreateJobWebhookPayload, CreateJobLogPayload
+
     job_type = job_type.lower()
 
     if job_type == "email":
@@ -57,5 +70,18 @@ def validate_create_job_request_payload(job_type, payload):
 
     if job_type == "webhook":
         return CreateJobWebhookPayload(**payload)
+    
+    if job_type == "log":
+        return CreateJobLogPayload(**payload)
 
     raise ValueError(f"Unsupported job type: {job_type}")
+
+def validate_schedule_config(schedule_type, config):
+    if schedule_type == "interval":
+        interval = config.get("interval_seconds")
+
+        if interval is None:
+            raise ValueError("interval_seconds is required for interval schedule")
+
+        if interval <= 0:
+            raise ValueError("interval_seconds must be > 0")

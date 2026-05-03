@@ -16,6 +16,7 @@ router = APIRouter()
 def create_job(job: JobCreate, db: Session = Depends(get_db)):
     try:
         validated_payload = validate_create_job_request_payload(job.type, job.payload)
+        job.payload = validated_payload.model_dump()
     except Exception as e:
         raise HTTPException(
             status_code=422,
@@ -31,6 +32,8 @@ def list_jobs(
         "all",
         description="Filter by status: pending, running, queued, success, failed, or all.",
     ),
+    limit: int = 10,
+    offset: int = 0,
     db: Session = Depends(get_db),
 ):
     try:
@@ -38,7 +41,7 @@ def list_jobs(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    return job_service.list_jobs(db, normalized_status)
+    return job_service.list_jobs(db, normalized_status, limit, offset)
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
