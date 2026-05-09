@@ -11,6 +11,15 @@ connection = None
 channel = None
 
 def get_connection():
+    # Cloud RabbitMQ support
+    if config_settings.RABBITMQ_URL:
+        parameters = pika.URLParameters(
+            config_settings.RABBITMQ_URL
+        )
+
+        return pika.BlockingConnection(parameters)
+
+    # Local Docker RabbitMQ support
     return pika.BlockingConnection(
         pika.ConnectionParameters(
             host=config_settings.RABBITMQ_HOST,
