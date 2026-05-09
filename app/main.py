@@ -50,7 +50,7 @@ def start_services():
         logger.info("Starting worker thread...")
 
         worker_thread = threading.Thread(
-            target=start_worker,
+            target=lambda: start_worker(register_signals=False),
             daemon=True
         )
         worker_thread.start()
