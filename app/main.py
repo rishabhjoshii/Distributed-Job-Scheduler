@@ -12,6 +12,7 @@ from app.core import rabbitmq
 from app.core.logging import setup_logging
 from app.db.session import Base, engine
 from app.scheduler.scheduler import request_shutdown, run_scheduler
+from app.worker.worker import start_worker
 
 logger = logging.getLogger("Main")
 
@@ -36,9 +37,23 @@ def start_services():
     logger.info("Initialising RabbitMQ setup")
     rabbitmq.init_rabbitmq()
 
-    logger.info("Starting scheduler thread...")
-    thread = threading.Thread(target=run_scheduler, daemon=True)
-    thread.start()
+    if config_settings.START_SCHEDULER_ON_API_STARTUP:
+        logger.info("Starting scheduler thread...")
+
+        scheduler_thread = threading.Thread(
+            target=run_scheduler,
+            daemon=True
+        )
+        scheduler_thread.start()
+
+    if config_settings.START_WORKER_ON_API_STARTUP:
+        logger.info("Starting worker thread...")
+
+        worker_thread = threading.Thread(
+            target=start_worker,
+            daemon=True
+        )
+        worker_thread.start()
 
 @app.on_event("shutdown")
 def shutdown_event():

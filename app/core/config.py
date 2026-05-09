@@ -42,6 +42,9 @@ class ConfigSettings(BaseSettings):
     AUTH_SKIP_PATHS: str = "/docs,/openapi.json,/favicon.ico,/health-check,/health,/metrics"
     AUTH_PROTECTED_METHODS: str
 
+    START_SCHEDULER_ON_API_STARTUP: bool = True
+    START_WORKER_ON_API_STARTUP: bool = False
+
     @property
     def parsed_api_keys(self):
         return [k.strip() for k in self.AUTH_API_KEYS.split(",") if k.strip()]
