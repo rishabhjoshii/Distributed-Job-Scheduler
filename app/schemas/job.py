@@ -49,17 +49,26 @@ class RetryJobRequest(BaseModel):
     reset_retry_count: Optional[bool] = True
     scheduled_at: Optional[datetime] = None
 
-class CreateJobEmailPayload(BaseModel):
+
+class PayloadModel(BaseModel):
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
+
+class CreateJobEmailPayload(PayloadModel):
     to: EmailStr
     subject: str
     body: str
     content_type: Literal["text", "html"] = "text"
 
 
-class CreateJobWebhookPayload(BaseModel):
+class CreateJobWebhookPayload(PayloadModel):
     url: str
     method: Literal["POST", "GET", "PATCH", "PUT", "DELETE"]
     data: dict = Field(default_factory=dict)
 
-class CreateJobLogPayload(BaseModel):
+class CreateJobLogPayload(PayloadModel):
     message: str

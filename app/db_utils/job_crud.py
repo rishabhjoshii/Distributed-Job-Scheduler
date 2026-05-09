@@ -299,13 +299,20 @@ def get_job_metrics(db: Session):
         Job.updated_at.isnot(None)
     ).scalar() or 0
 
-    one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+    first_job = db.query(Job).order_by(Job.created_at.asc()).first()
+    last_job = db.query(Job).order_by(Job.created_at.desc()).first()
 
-    jobs_last_hour = db.query(func.count(Job.id)).filter(
-        Job.created_at >= one_hour_ago
-    ).scalar() or 0
+    throughput = 0
 
-    throughput = jobs_last_hour / 60.0
+    if first_job and last_job and first_job.created_at != last_job.created_at:
+        elapsed_seconds = (
+            last_job.created_at - first_job.created_at
+        ).total_seconds()
+
+        elapsed_minutes = elapsed_seconds / 60
+
+        if elapsed_minutes > 0:
+            throughput = total / elapsed_minutes
 
     success_rate = (success / total * 100) if total > 0 else 0
     failure_rate = (failed / total * 100) if total > 0 else 0

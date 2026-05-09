@@ -15,14 +15,14 @@ class EmailHandler(JobHandler):
         # if random.random() < 0.3:
         #     raise Exception(f"Simulated failure for job {job.id}")
 
-        payload = CreateJobEmailPayload(**job.payload)
+        payload = self.normalize_payload(job.payload, CreateJobEmailPayload)
         
         provider = get_email_provider()
 
         provider.send_email(
-            to=payload["to"],
-            subject=payload["subject"],
-            body=payload["body"],
-            content_type=payload.get("content_type", "text")
+            to=payload.to,
+            subject=payload.subject,
+            body=payload.body,
+            content_type=payload.content_type
         )
         

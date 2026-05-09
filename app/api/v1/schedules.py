@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.core.constants import ScheduleStatus, ValidJobTypes, validate_create_job_request_payload
+from app.core.constants import ScheduleStatus, ValidJobTypes
+from app.core.payloads import normalize_payload_dict
 from app.db.session import get_db
 from app.schemas.schedule import ScheduleCreate, ScheduleResponse
 from app.services import schedule_service
@@ -13,7 +14,7 @@ router = APIRouter()
 @router.post("/schedules")
 def create_schedule(schedule: ScheduleCreate, db: Session = Depends(get_db)):
     try:
-        validated_payload = validate_create_job_request_payload(schedule.type, schedule.payload)
+        schedule.payload = normalize_payload_dict(schedule.type, schedule.payload)
         return schedule_service.create_schedule(db, schedule)
     except Exception as e:
         raise HTTPException(status_code=422, detail=str(e))

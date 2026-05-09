@@ -4,7 +4,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.constants import JobStatusFilter, normalize_status_filter, validate_create_job_request_payload
+from app.core.constants import JobStatusFilter, normalize_status_filter
+from app.core.payloads import normalize_payload_dict
 from app.db.session import get_db
 from app.schemas.job import JobCreate, JobResponse, RetryJobRequest
 from app.services import job_service
@@ -15,8 +16,7 @@ router = APIRouter()
 @router.post("/jobs", response_model=JobResponse)
 def create_job(job: JobCreate, db: Session = Depends(get_db)):
     try:
-        validated_payload = validate_create_job_request_payload(job.type, job.payload)
-        job.payload = validated_payload.model_dump()
+        job.payload = normalize_payload_dict(job.type, job.payload)
     except Exception as e:
         raise HTTPException(
             status_code=422,

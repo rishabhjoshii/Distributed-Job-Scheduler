@@ -11,7 +11,7 @@ logger = logging.getLogger("WebhookHandler")
 
 class WebhookHandler(JobHandler):
     def execute(self, job):
-        payload = CreateJobWebhookPayload(**job.payload)
+        payload = self.normalize_payload(job.payload, CreateJobWebhookPayload)
 
         logger.info(
             "Calling webhook → url=%s method=%s",
@@ -20,11 +20,13 @@ class WebhookHandler(JobHandler):
         )
 
         try:
+            request_method = payload.method.upper()
+
             response = requests.request(
-                method=payload.method,
+                method=request_method,
                 url=payload.url,
-                json=payload.data if payload.method != "GET" else None,
-                params=payload.data if payload.method == "GET" else None,
+                json=payload.data if request_method != "GET" else None,
+                params=payload.data if request_method == "GET" else None,
                 timeout=5
             )
 
@@ -34,4 +36,4 @@ class WebhookHandler(JobHandler):
                 )
 
         except Exception as e:
-            raise Exception(f"Webhook execution failed: {e}")
+            raise Exception(f"Webhook execution failed: {e}") from e
