@@ -14,6 +14,7 @@ class ConfigSettings(BaseSettings):
 
     RABBITMQ_HOST: str = "localhost"
     RABBITMQ_PORT: int = 5672
+    RABBITMQ_URL: str | None = None
 
     JOB_QUEUE: str = "job_queue"
     DLQ_QUEUE: str = "job_dlq"
