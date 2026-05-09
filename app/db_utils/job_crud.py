@@ -1,7 +1,7 @@
 """CRUD helpers for jobs."""
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from app.core.config import config_settings
@@ -31,12 +31,27 @@ def get_job(db: Session, job_id):
     return job
 
 
-def list_jobs(db: Session, status: str):
+def list_jobs(db: Session, status: str, limit: int, offset: int):
     status = normalize_value(status)
+
+    if limit > 100: 
+        limit = 100
+
+    if offset < 0: 
+        offset = 0
+        
     query = db.query(Job)
+
     if status != "all":
         query = query.filter(Job.status == status)
-    return query.order_by(Job.created_at.desc()).all()
+        
+    return (
+        query
+        .order_by(Job.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+        .all()
+    )
 
 
 def update_job(db: Session, job_id, job_data):
@@ -95,7 +110,7 @@ def update_job_status(db: Session, job_id, status: JobState, error=None):
 
     job.status = status
     if error:
-        job.last_error = error
+        job.last_error = str(error)
 
     db.commit()
     db.refresh(job)
@@ -126,15 +141,26 @@ def handle_job_failure(db, job_id, error):
     db.commit()
     return job
 
-def fetch_job_for_update(db, job_id):
+def claim_job(db, job_id):
     stmt = (
         select(Job)
-        .where(Job.id == job_id)
-        .with_for_update()
+        .where(
+            Job.id == job_id,
+            Job.status == JobState.QUEUED
+        )
+        .with_for_update(skip_locked=True)
     )
 
-    result = db.execute(stmt)
-    return result.scalar_one_or_none()
+    job = db.execute(stmt).scalar_one_or_none()
+
+    if not job:
+        return None
+
+    job.status = JobState.RUNNING
+    job.started_at = datetime.utcnow()
+
+    db.commit()
+    return job
 
 def recover_stuck_running_jobs(db, timeout_seconds=60, limit=None):
     if limit is None:
@@ -242,3 +268,68 @@ def cancel_job(db, job_id):
     db.refresh(job)
 
     return job
+
+def get_job_metrics(db: Session):
+    total = db.query(func.count(Job.id)).scalar() or 0
+
+    success = db.query(func.count(Job.id)).filter(Job.status == "success").scalar() or 0
+    failed = db.query(func.count(Job.id)).filter(Job.status == "failed").scalar() or 0
+    running = db.query(func.count(Job.id)).filter(Job.status == "running").scalar() or 0
+    queued = db.query(func.count(Job.id)).filter(Job.status == "queued").scalar() or 0
+    pending = db.query(func.count(Job.id)).filter(Job.status == "pending").scalar() or 0
+
+    jobs_retried = db.query(func.count(Job.id)).filter(Job.retry_count > 0).scalar() or 0
+
+    recovered = db.query(func.count(Job.id)).filter(
+        Job.retry_count > 0,
+        Job.status == "success"
+    ).scalar() or 0
+
+    avg_queue_wait = db.query(
+        func.avg(func.extract("epoch", Job.started_at - Job.queued_at))
+    ).filter(
+        Job.started_at.isnot(None),
+        Job.queued_at.isnot(None)
+    ).scalar() or 0
+
+    avg_processing = db.query(
+        func.avg(func.extract("epoch", Job.updated_at - Job.started_at))
+    ).filter(
+        Job.started_at.isnot(None),
+        Job.updated_at.isnot(None)
+    ).scalar() or 0
+
+    first_job = db.query(Job).order_by(Job.created_at.asc()).first()
+    last_job = db.query(Job).order_by(Job.created_at.desc()).first()
+
+    throughput = 0
+
+    if first_job and last_job and first_job.created_at != last_job.created_at:
+        elapsed_seconds = (
+            last_job.created_at - first_job.created_at
+        ).total_seconds()
+
+        elapsed_minutes = elapsed_seconds / 60
+
+        if elapsed_minutes > 0:
+            throughput = total / elapsed_minutes
+
+    success_rate = (success / total * 100) if total > 0 else 0
+    failure_rate = (failed / total * 100) if total > 0 else 0
+    retry_recovery = (recovered / jobs_retried * 100) if jobs_retried > 0 else 0
+
+    return {
+        "total_jobs_processed": total,
+        "success_jobs": success,
+        "failed_jobs": failed,
+        "running_jobs": running,
+        "queued_jobs": queued,
+        "pending_jobs": pending,
+        "success_rate_percent": round(success_rate, 2),
+        "failure_rate_percent": round(failure_rate, 2),
+        "jobs_retried": jobs_retried,
+        "retry_recovery_rate_percent": round(retry_recovery, 2),
+        "avg_queue_wait_seconds": round(avg_queue_wait, 2),
+        "avg_processing_seconds": round(avg_processing, 2),
+        "throughput_jobs_per_minute_last_hour": round(throughput, 2),
+    }

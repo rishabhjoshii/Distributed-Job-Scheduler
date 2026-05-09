@@ -4,6 +4,8 @@ from typing import Literal, Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
 
+from app.core.constants import VALID_JOB_TYPES
+
 
 class JobCreate(BaseModel):
     type: str
@@ -14,10 +16,11 @@ class JobCreate(BaseModel):
     @field_validator("type")
     @classmethod
     def validate_type(cls, val):
-        allowed = ["email", "log", "webhook"]
-        if val.lower() not in allowed:
-            raise ValueError(f"type must be one of {allowed}")
-        return val.lower()
+        normalized = val.lower()
+        if normalized not in VALID_JOB_TYPES:
+            allowed = ", ".join(sorted(VALID_JOB_TYPES))
+            raise ValueError(f"Job type must be one of: {allowed}")
+        return normalized
 
     @field_validator("payload")
     @classmethod
@@ -46,14 +49,26 @@ class RetryJobRequest(BaseModel):
     reset_retry_count: Optional[bool] = True
     scheduled_at: Optional[datetime] = None
 
-class CreateJobEmailPayload(BaseModel):
+
+class PayloadModel(BaseModel):
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def get(self, key, default=None):
+        return getattr(self, key, default)
+
+
+class CreateJobEmailPayload(PayloadModel):
     to: EmailStr
     subject: str
     body: str
     content_type: Literal["text", "html"] = "text"
 
 
-class CreateJobWebhookPayload(BaseModel):
+class CreateJobWebhookPayload(PayloadModel):
     url: str
     method: Literal["POST", "GET", "PATCH", "PUT", "DELETE"]
     data: dict = Field(default_factory=dict)
+
+class CreateJobLogPayload(PayloadModel):
+    message: str
